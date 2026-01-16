@@ -1,0 +1,71 @@
+/* Khung chứa Transcript */
+.wec-transcript-box {
+    border: 1px solid #e5e7eb;
+    margin-top: 20px;
+    background: #ffffff;
+    border-radius: 8px;
+    height: 400px; /* Chiều cao cố định */
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.wec-transcript-header {
+    padding: 15px;
+    background: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+    font-weight: bold;
+    font-size: 16px;
+    border-radius: 8px 8px 0 0;
+}
+
+/* Phần nội dung cuộn được */
+#wec-transcript-content {
+    flex: 1;
+    overflow-y: auto; /* Cho phép cuộn dọc */
+    padding: 10px;
+}
+
+/* Từng dòng thoại - Dùng Flexbox để chia cột */
+.wec-transcript-line {
+    display: flex; /* Quan trọng: Chia cột */
+    align-items: baseline;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.wec-transcript-line:hover {
+    background-color: #f3f4f6;
+}
+
+/* Trạng thái đang đọc (Active) */
+.wec-transcript-line.active {
+    background-color: #dbeafe; /* Xanh dương nhạt */
+    border-left-color: #2563eb; /* Viền xanh đậm */
+}
+
+.wec-transcript-line.active .wec-text {
+    color: #1e40af;
+    font-weight: 600;
+}
+
+/* Cột thời gian */
+.wec-time {
+    font-family: monospace; /* Font chữ số đều nhau */
+    font-size: 0.85em;
+    color: #9ca3af;
+    min-width: 80px; /* Cố định chiều rộng cột thời gian */
+    margin-right: 15px;
+    user-select: none;
+}
+
+/* Cột nội dung chữ */
+.wec-text {
+    flex: 1; /* Chiếm hết phần còn lại */
+    line-height: 1.5;
+    font-size: 15px;
+}
