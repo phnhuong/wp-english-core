@@ -6,55 +6,62 @@ document.addEventListener('DOMContentLoaded', function() {
     const mp4Player = document.getElementById('wec-main-player');
     const iframeElement = document.getElementById('wec-yt-iframe');
     
-    // Elements Popup
+    // Elements
     const popup = document.getElementById('wec-dict-popup');
     const popupWord = document.getElementById('wec-dict-word');
     const popupBody = document.getElementById('wec-dict-body');
     const popupClose = document.getElementById('wec-dict-close');
+    
+    // Toolbar Buttons
+    const modeBtns = document.querySelectorAll('.wec-mode-btn');
 
     if (!transcriptContainer) return;
 
-    // --- HÀM PLAYER ---
+    // --- 1. LOGIC CHUYỂN ĐỔI CHẾ ĐỘ HIỂN THỊ ---
+    if (modeBtns) {
+        modeBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Xóa active cũ
+                modeBtns.forEach(b => b.classList.remove('active'));
+                // Active nút hiện tại
+                this.classList.add('active');
+                
+                // Lấy mode (en, vi, bilingual, hidden)
+                const mode = this.dataset.mode;
+                
+                // Cập nhật class cho container để CSS tự xử lý ẩn hiện
+                transcriptContainer.className = ''; // Reset class
+                transcriptContainer.classList.add('mode-' + mode);
+            });
+        });
+    }
+
+    // --- CÁC HÀM CŨ (PLAYER, CLICK, AJAX...) GIỮ NGUYÊN ---
+    // (Tôi viết lại đầy đủ để bạn copy cho tiện)
+    
     function pauseVideo() {
         if (isYoutube && wecPlayer && typeof wecPlayer.pauseVideo === 'function') wecPlayer.pauseVideo();
         if (mp4Player) mp4Player.pause();
     }
     
-    function playVideo() {
-        if (isYoutube && wecPlayer) wecPlayer.playVideo();
-        if (mp4Player) mp4Player.play();
-    }
-
     function seekVideo(time) {
         if (isYoutube && wecPlayer) {
-            wecPlayer.seekTo(time, true);
-            wecPlayer.playVideo();
+            wecPlayer.seekTo(time, true); wecPlayer.playVideo();
         } else if (mp4Player) {
-            mp4Player.currentTime = time;
-            mp4Player.play();
+            mp4Player.currentTime = time; mp4Player.play();
         }
     }
 
-    // --- HÀM CLICK ---
+    // Sự kiện Click Transcript
     transcriptContainer.addEventListener('click', function(e) {
-        // TRƯỜNG HỢP 1: Click vào TỪ (Tra từ điển)
         if (e.target.classList.contains('wec-word')) {
-            e.stopPropagation(); // QUAN TRỌNG: Ngăn không cho tua video
-            
-            // Dừng video ngay
+            e.stopPropagation();
             pauseVideo();
-
-            // Lấy từ vựng
-            let word = e.target.innerText;
-            // Xóa dấu câu thừa (ví dụ "Hello," -> "Hello")
-            word = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-
-            // Hiện Popup
+            let word = e.target.innerText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
             showPopup(word, e.clientX, e.clientY);
             return;
         }
 
-        // TRƯỜNG HỢP 2: Click vào DÒNG (Tua video)
         const line = e.target.closest('.wec-transcript-line');
         if (line) {
             const seekTime = parseFloat(line.dataset.start);
@@ -62,33 +69,44 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- HÀM POPUP ---
+    // Popup Ajax
     function showPopup(word, x, y) {
         if(!popup) return;
         popupWord.innerText = word;
-        popupBody.innerHTML = `Đang tra nghĩa từ: <b>${word}</b>...<br><i style="color:#666; font-size:13px;">(Tính năng API từ điển sẽ có ở Giai đoạn 2)</i>`;
+        popupBody.innerHTML = '<div style="color:#666;">Translation... <span class="spinner">↻</span></div>';
         
         popup.style.display = 'block';
         
-        // Tính toán vị trí Popup để không bị che
-        // Lấy chiều rộng màn hình
+        // Vị trí
         const winWidth = window.innerWidth;
         const popupWidth = 320;
-        
         let left = x;
-        if (x + popupWidth > winWidth) {
-            left = winWidth - popupWidth - 20; // Dịch sang trái nếu sát lề phải
-        }
-        
+        if (x + popupWidth > winWidth) left = winWidth - popupWidth - 20;
         popup.style.top = (y + 15) + 'px';
         popup.style.left = left + 'px';
+
+        // Gọi Ajax
+        if (typeof wec_params !== 'undefined') {
+            jQuery.ajax({
+                url: wec_params.ajax_url,
+                type: 'GET',
+                data: { action: 'wec_lookup_word', word: word },
+                success: function(response) {
+                    if (response.success) {
+                        popupBody.innerHTML = `
+                            <div style="font-size: 16px; margin-bottom: 5px; color: #333;">
+                                Nghĩa: <b>${response.data.meaning}</b>
+                            </div>
+                            <div style="margin-top: 10px; padding-top:10px; border-top:1px dashed #eee;">
+                                <button style="background:#2563eb; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">+ Lưu từ</button>
+                            </div>`;
+                    } else { popupBody.innerHTML = 'Error.'; }
+                }
+            });
+        }
     }
 
-    // Đóng Popup
-    if (popupClose) {
-        popupClose.addEventListener('click', () => { popup.style.display = 'none'; });
-    }
-    // Click ra ngoài thì đóng
+    if (popupClose) popupClose.addEventListener('click', () => { popup.style.display = 'none'; });
     document.addEventListener('click', (e) => {
         if (popup && popup.style.display === 'block') {
             if (!popup.contains(e.target) && !e.target.classList.contains('wec-word')) {
@@ -97,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- LOGIC HIGHLIGHT VÀ YOUTUBE ---
+    // Highlight
     function highlightLine(currentTime) {
         const lines = document.querySelectorAll('.wec-transcript-line');
         lines.forEach(line => {
@@ -113,9 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    if (mp4Player) {
-        mp4Player.addEventListener('timeupdate', () => highlightLine(mp4Player.currentTime));
-    }
+    if (mp4Player) mp4Player.addEventListener('timeupdate', () => highlightLine(mp4Player.currentTime));
 
     if (iframeElement) {
         isYoutube = true;

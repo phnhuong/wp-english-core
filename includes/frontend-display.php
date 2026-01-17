@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// --- GIỮ NGUYÊN HÀM HELPER CŨ ---
+// --- HELPER FUNCTIONS (GIỮ NGUYÊN) ---
 function wec_get_youtube_id( $url ) {
     $pattern = '%(?:youtube(?:-nocookie)?\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/ ]{11})%i';
     if ( preg_match( $pattern, $url, $match ) ) return $match[1];
@@ -11,7 +11,6 @@ function wec_get_youtube_id( $url ) {
 }
 
 function wec_parse_vtt( $vtt_url ) {
-    // Logic đọc file Local Path (Giữ nguyên như cũ)
     $upload_dir = wp_upload_dir();
     $vtt_path = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $vtt_url );
 
@@ -37,10 +36,8 @@ function wec_parse_vtt( $vtt_url ) {
 
         if ( preg_match( '/(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})/', $line, $matches ) ) {
             if ( ! empty( $current_sub ) ) { $subs[] = $current_sub; $current_sub = []; }
-            
             $start_parts = explode( ':', $matches[1] );
             $start = $start_parts[0] * 3600 + $start_parts[1] * 60 + (float)$start_parts[2];
-            
             $end_parts = explode( ':', $matches[2] );
             $end = $end_parts[0] * 3600 + $end_parts[1] * 60 + (float)$end_parts[2];
 
@@ -56,13 +53,14 @@ function wec_parse_vtt( $vtt_url ) {
     return $subs;
 }
 
-// --- CẬP NHẬT HÀM CHÍNH (THÊM POPUP & TÁCH TỪ) ---
+// --- MAIN FUNCTION ---
 function wec_add_video_player_to_content( $content ) {
     if ( ! is_singular( 'video_lesson' ) ) return $content;
 
     $post_id = get_the_ID();
     $video_url = get_post_meta( $post_id, 'wec_video_url', true );
-    $subtitle_url = get_post_meta( $post_id, 'wec_subtitle_url', true );
+    $sub_en_url = get_post_meta( $post_id, 'wec_subtitle_en', true );
+    $sub_vi_url = get_post_meta( $post_id, 'wec_subtitle_vi', true );
 
     if ( empty( $video_url ) ) return $content;
 
@@ -81,49 +79,95 @@ function wec_add_video_player_to_content( $content ) {
     }
     $player_html .= '</div>';
 
-    // 2. DICTIONARY POPUP (MỚI)
+    // 2. DICTIONARY POPUP
     $transcript_html = '<div id="wec-dict-popup" class="wec-dict-popup" style="display:none;">
                             <div class="wec-dict-header">
                                 <span id="wec-dict-word">Word</span>
                                 <span id="wec-dict-close">&times;</span>
                             </div>
-                            <div id="wec-dict-body">Đang tải nghĩa...</div>
+                            <div id="wec-dict-body">Checking...</div>
                          </div>';
 
-    // 3. TRANSCRIPT BOX
-    if ( ! empty( $subtitle_url ) ) {
-        $subs = wec_parse_vtt( $subtitle_url );
-        if ( ! empty( $subs ) ) {
-            $transcript_html .= '<div class="wec-transcript-box">';
-            $transcript_html .= '<div class="wec-transcript-header">Lời thoại (Transcript)</div>';
-            $transcript_html .= '<div id="wec-transcript-content">';
+    // 3. TRANSCRIPT BOX (SMART MERGE LOGIC)
+    if ( ! empty( $sub_en_url ) || ! empty( $sub_vi_url ) ) {
+        
+        $subs_en = !empty($sub_en_url) ? wec_parse_vtt( $sub_en_url ) : [];
+        $subs_vi = !empty($sub_vi_url) ? wec_parse_vtt( $sub_vi_url ) : [];
+
+        $transcript_html .= '<div class="wec-transcript-box">';
+        
+        // Toolbar
+        $transcript_html .= '<div class="wec-transcript-header">
+            <div class="wec-title">Transcript</div>
+            <div class="wec-modes">
+                <button class="wec-mode-btn active" data-mode="bilingual">Song ngữ</button>
+                <button class="wec-mode-btn" data-mode="en">Tiếng Anh</button>
+                <button class="wec-mode-btn" data-mode="vi">Tiếng Việt</button>
+                <button class="wec-mode-btn" data-mode="hidden">Ẩn</button>
+            </div>
+        </div>';
+
+        $transcript_html .= '<div id="wec-transcript-content" class="mode-bilingual">';
+        
+        // Chọn danh sách chuẩn để loop (ưu tiên EN)
+        $base_subs = !empty($subs_en) ? $subs_en : $subs_vi;
+        
+        foreach ( $base_subs as $index => $sub ) {
+            $start = $sub['start'];
+            $end   = $sub['end'];
+            $time_str = $sub['time_str'];
             
-            foreach ( $subs as $sub ) {
-                // LOGIC TÁCH TỪ (MỚI)
-                $raw_text = esc_html( $sub['text'] );
-                $words = explode( ' ', $raw_text );
-                $processed_text = '';
+            // XỬ LÝ TIẾNG ANH (Tách từ)
+            $text_en_html = '';
+            if ( !empty($subs_en) ) {
+                $raw_en = isset($subs_en[$index]) ? $subs_en[$index]['text'] : '';
+                $words = explode( ' ', esc_html($raw_en) );
                 foreach ( $words as $word ) {
                     if ( trim($word) !== '' ) {
-                        // Thêm class wec-word để JS bắt sự kiện
-                        $processed_text .= '<span class="wec-word">' . $word . '</span> '; 
+                        $text_en_html .= '<span class="wec-word">' . $word . '</span> '; 
                     }
                 }
-
-                $transcript_html .= sprintf(
-                    '<div class="wec-transcript-line" data-start="%s" data-end="%s">
-                        <span class="wec-time">[%s]</span> 
-                        <span class="wec-text">%s</span>
-                    </div>',
-                    $sub['start'],
-                    $sub['end'],
-                    $sub['time_str'],
-                    $processed_text // Text đã tách
-                );
             }
-            $transcript_html .= '</div></div>';
+
+            // XỬ LÝ TIẾNG VIỆT (SMART MATCHING)
+            $text_vi_html = '';
+            if ( !empty($subs_vi) ) {
+                $best_match_vi = '';
+                $min_diff = 2.0; // Cho phép sai số tối đa 2 giây (Trước đây là 0.5)
+
+                foreach($subs_vi as $vi_item) {
+                    $diff = abs($vi_item['start'] - $start);
+                    
+                    // Tìm câu có thời gian gần nhất
+                    if ( $diff < $min_diff ) {
+                        $min_diff = $diff;
+                        $best_match_vi = $vi_item['text'];
+                    }
+                }
+                
+                $text_vi_html = esc_html($best_match_vi);
+            }
+
+            // Render
+            $transcript_html .= sprintf(
+                '<div class="wec-transcript-line" data-start="%s" data-end="%s">
+                    <div class="wec-time">[%s]</div> 
+                    <div class="wec-content-wrap">
+                        <div class="wec-sub-en">%s</div>
+                        <div class="wec-sub-vi">%s</div>
+                    </div>
+                </div>',
+                $start,
+                $end,
+                $time_str,
+                $text_en_html,
+                $text_vi_html
+            );
         }
+        
+        $transcript_html .= '</div></div>';
     }
+
     return $player_html . $transcript_html . $content;
 }
 add_filter( 'the_content', 'wec_add_video_player_to_content' );
