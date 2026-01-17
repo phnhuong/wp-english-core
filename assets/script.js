@@ -6,39 +6,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const mp4Player = document.getElementById('wec-main-player');
     const iframeElement = document.getElementById('wec-yt-iframe');
     
-    // Elements
     const popup = document.getElementById('wec-dict-popup');
     const popupWord = document.getElementById('wec-dict-word');
     const popupBody = document.getElementById('wec-dict-body');
     const popupClose = document.getElementById('wec-dict-close');
-    
-    // Toolbar Buttons
     const modeBtns = document.querySelectorAll('.wec-mode-btn');
 
     if (!transcriptContainer) return;
 
-    // --- 1. LOGIC CHUYỂN ĐỔI CHẾ ĐỘ HIỂN THỊ ---
+    // --- TOOLBAR MODES ---
     if (modeBtns) {
         modeBtns.forEach(btn => {
             btn.addEventListener('click', function() {
-                // Xóa active cũ
                 modeBtns.forEach(b => b.classList.remove('active'));
-                // Active nút hiện tại
                 this.classList.add('active');
-                
-                // Lấy mode (en, vi, bilingual, hidden)
-                const mode = this.dataset.mode;
-                
-                // Cập nhật class cho container để CSS tự xử lý ẩn hiện
-                transcriptContainer.className = ''; // Reset class
-                transcriptContainer.classList.add('mode-' + mode);
+                transcriptContainer.className = ''; 
+                transcriptContainer.classList.add('mode-' + this.dataset.mode);
             });
         });
     }
 
-    // --- CÁC HÀM CŨ (PLAYER, CLICK, AJAX...) GIỮ NGUYÊN ---
-    // (Tôi viết lại đầy đủ để bạn copy cho tiện)
-    
+    // --- PLAYER CONTROLS ---
     function pauseVideo() {
         if (isYoutube && wecPlayer && typeof wecPlayer.pauseVideo === 'function') wecPlayer.pauseVideo();
         if (mp4Player) mp4Player.pause();
@@ -52,7 +40,55 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Sự kiện Click Transcript
+    // --- CLICK EVENTS ---
+    document.addEventListener('click', function(e) {
+        // 1. Click Close Popup
+        if (popup && popup.style.display === 'block') {
+            if (!popup.contains(e.target) && !e.target.classList.contains('wec-word')) {
+                popup.style.display = 'none';
+            }
+        }
+
+        // 2. Click Save Button (XỬ LÝ MỚI)
+        if (e.target && e.target.id === 'wec-btn-save') {
+            const btn = e.target;
+            const word = btn.dataset.word;
+            const meaning = btn.dataset.meaning;
+            
+            btn.innerText = 'Đang lưu...';
+            btn.disabled = true;
+
+            jQuery.ajax({
+                url: wec_params.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'wec_save_word',
+                    word: word,
+                    meaning: meaning,
+                    video_id: wec_params.post_id || 0
+                },
+                success: function(res) {
+                    if(res.success) {
+                        btn.innerText = '✔ ' + (res.data === 'Từ này đã lưu rồi.' ? 'Đã có' : 'Đã lưu');
+                        btn.style.background = '#10b981';
+                        setTimeout(() => { btn.disabled = false; }, 2000);
+                    } else {
+                        alert(res.data); // Hiện lỗi từ Server (VD: Chưa login, Lỗi DB)
+                        btn.innerText = 'Lỗi';
+                        btn.disabled = false;
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error(xhr.responseText);
+                    alert('Lỗi kết nối: ' + error);
+                    btn.innerText = 'Lỗi Mạng';
+                    btn.disabled = false;
+                }
+            });
+        }
+    });
+
+    // --- CLICK TRANSCRIPT ---
     transcriptContainer.addEventListener('click', function(e) {
         if (e.target.classList.contains('wec-word')) {
             e.stopPropagation();
@@ -61,7 +97,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showPopup(word, e.clientX, e.clientY);
             return;
         }
-
         const line = e.target.closest('.wec-transcript-line');
         if (line) {
             const seekTime = parseFloat(line.dataset.start);
@@ -69,15 +104,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Popup Ajax
     function showPopup(word, x, y) {
         if(!popup) return;
         popupWord.innerText = word;
-        popupBody.innerHTML = '<div style="color:#666;">Translation... <span class="spinner">↻</span></div>';
+        popupBody.innerHTML = '<div style="color:#666;">Translating... <span class="spinner">↻</span></div>';
         
         popup.style.display = 'block';
         
-        // Vị trí
         const winWidth = window.innerWidth;
         const popupWidth = 320;
         let left = x;
@@ -85,7 +118,6 @@ document.addEventListener('DOMContentLoaded', function() {
         popup.style.top = (y + 15) + 'px';
         popup.style.left = left + 'px';
 
-        // Gọi Ajax
         if (typeof wec_params !== 'undefined') {
             jQuery.ajax({
                 url: wec_params.ajax_url,
@@ -93,29 +125,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 data: { action: 'wec_lookup_word', word: word },
                 success: function(response) {
                     if (response.success) {
+                        const meaning = response.data.meaning;
                         popupBody.innerHTML = `
                             <div style="font-size: 16px; margin-bottom: 5px; color: #333;">
-                                Nghĩa: <b>${response.data.meaning}</b>
+                                Nghĩa: <b>${meaning}</b>
                             </div>
                             <div style="margin-top: 10px; padding-top:10px; border-top:1px dashed #eee;">
-                                <button style="background:#2563eb; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">+ Lưu từ</button>
+                                <button id="wec-btn-save" 
+                                    data-word="${word}" 
+                                    data-meaning="${meaning}"
+                                    style="background:#2563eb; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">
+                                    + Lưu từ
+                                </button>
                             </div>`;
-                    } else { popupBody.innerHTML = 'Error.'; }
+                    } else { popupBody.innerHTML = 'Error translation.'; }
                 }
             });
         }
     }
-
+    
     if (popupClose) popupClose.addEventListener('click', () => { popup.style.display = 'none'; });
-    document.addEventListener('click', (e) => {
-        if (popup && popup.style.display === 'block') {
-            if (!popup.contains(e.target) && !e.target.classList.contains('wec-word')) {
-                popup.style.display = 'none';
-            }
-        }
-    });
 
-    // Highlight
+    // --- HIGHLIGHT ---
     function highlightLine(currentTime) {
         const lines = document.querySelectorAll('.wec-transcript-line');
         lines.forEach(line => {
