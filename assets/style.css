@@ -1,72 +1,148 @@
-/* --- DICTATION MODE (LUYỆN NGHE) --- */
-#wec-transcript-content.mode-dictation .wec-transcript-line {
-    display: none; /* Ẩn hết các dòng khác */
-}
-#wec-transcript-content.mode-dictation .wec-transcript-line.active {
-    display: block; /* Chỉ hiện dòng đang chạy */
-    background: #fff;
-    border: 2px solid #2563eb;
-    padding: 20px;
-    font-size: 18px;
-    text-align: center;
-    margin-top: 20px;
+/* --- 1. LAYOUT RẠP HÁT (FULL WIDTH) --- */
+.wec-video-container-full {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0;
+    background-color: #1a1a1a;
+    padding: 20px 10px;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 99; /* Đảm bảo nổi lên trên */
 }
 
-/* Ẩn sub tiếng Việt trong chế độ này */
-#wec-transcript-content.mode-dictation .wec-sub-vi { display: none; }
+/* Cột TRÁI: Video */
+.wec-col-video {
+    flex: 2;
+    min-width: 600px;
+    max-width: 1100px;
+    padding-right: 20px;
+}
+
+/* Cột PHẢI: Transcript */
+.wec-col-transcript {
+    flex: 1;
+    min-width: 320px;
+    height: 550px;
+}
+
+/* --- 2. VIDEO PLAYER --- */
+.wec-video-wrapper {
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    border: 1px solid #333;
+}
+
+/* --- 3. TRANSCRIPT BOX --- */
+.wec-transcript-box {
+    background: #ffffff;
+    border-radius: 8px;
+    height: 100%; 
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Header & Toolbar */
+.wec-transcript-header {
+    padding: 10px;
+    background: #f1f5f9;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.wec-title { font-weight: bold; font-size: 16px; color: #333; }
+
+.wec-modes { display: flex; gap: 5px; }
+.wec-mode-btn {
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+.wec-mode-btn:hover { background: #e2e8f0; }
+.wec-mode-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+/* Content Scroll */
+#wec-transcript-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    background: #fff;
+}
+
+/* Line Items */
+.wec-transcript-line {
+    padding: 10px 15px;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    border-left: 4px solid transparent;
+    transition: background 0.1s;
+}
+.wec-transcript-line:hover { background-color: #f8fafc; }
+
+.wec-transcript-line.active {
+    background-color: #eff6ff;
+    border-left-color: #3b82f6;
+}
+.wec-transcript-line.active .wec-sub-en { color: #1d4ed8; font-weight: 600; }
+
+/* Nội dung Text */
+.wec-sub-en { font-size: 16px; color: #334155; line-height: 1.5; margin-bottom: 4px; }
+.wec-sub-vi { font-size: 14px; color: #64748b; font-style: italic; }
+.wec-time { 
+    font-size: 11px; color: #94a3b8; font-family: monospace; 
+    margin-bottom: 4px; display: block;
+}
+
+/* Chế độ hiển thị */
+#wec-transcript-content.mode-en .wec-sub-vi { display: none; }
+#wec-transcript-content.mode-vi .wec-sub-en { display: none; }
+#wec-transcript-content.mode-hidden .wec-content-wrap { opacity: 0; }
+#wec-transcript-content.mode-hidden .wec-transcript-line:hover .wec-content-wrap { opacity: 0.5; }
+
+/* --- 4. POPUP & WORD --- */
+.wec-word { cursor: pointer; border-radius: 3px; padding: 0 1px; }
+.wec-word:hover { background-color: #fde047; color: #000; }
+
+.wec-dict-popup {
+    position: fixed; z-index: 99999; background: #fff; width: 300px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid #ccc;
+    font-family: sans-serif;
+}
+.wec-dict-header { background: #2563eb; color: #fff; padding: 10px 15px; display: flex; justify-content: space-between; border-radius: 7px 7px 0 0; }
+#wec-dict-close { cursor: pointer; font-size: 20px; }
+#wec-dict-body { padding: 15px; color: #333; font-size: 14px; line-height: 1.5; }
+
+/* --- 5. DICTATION MODE (LUYỆN NGHE) --- */
+#wec-transcript-content.mode-dictation .wec-transcript-line { display: none; }
+#wec-transcript-content.mode-dictation .wec-transcript-line.active { 
+    display: block; background: #fff; border: 2px solid #2563eb; padding: 30px; font-size: 18px; text-align: center; margin: 20px;
+}
+#wec-transcript-content.mode-dictation .wec-sub-vi, 
 #wec-transcript-content.mode-dictation .wec-time { display: none; }
 
-/* Ô Input điền từ */
 .wec-input-word {
-    border: none;
-    border-bottom: 2px solid #ccc;
-    width: 80px;
-    text-align: center;
-    font-size: 18px;
-    color: #333;
-    margin: 0 5px;
-    outline: none;
-    background: #f9f9f9;
+    border: none; border-bottom: 2px solid #ccc; width: 100px; text-align: center; 
+    font-size: 18px; color: #333; margin: 0 5px; outline: none; background: #f9f9f9; padding: 5px;
 }
 .wec-input-word:focus { border-bottom-color: #2563eb; background: #eef2ff; }
+.wec-input-word.correct { border-bottom-color: #10b981; color: #10b981; font-weight: bold; background: #d1fae5; }
+.wec-input-word.incorrect { border-bottom-color: #ef4444; background: #fee2e2; animation: shake 0.3s; }
+.wec-quiz-feedback { margin-top: 15px; font-weight: bold; height: 20px; color: #10b981; }
+@keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } 100% { transform: translateX(0); } }
 
-.wec-input-word.correct {
-    border-bottom-color: #10b981;
-    color: #10b981;
-    font-weight: bold;
-    background: #d1fae5;
-}
-.wec-input-word.incorrect {
-    border-bottom-color: #ef4444;
-    background: #fee2e2;
-    animation: shake 0.3s;
-}
-
-/* Hiệu ứng rung khi sai */
-@keyframes shake {
-    0% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    50% { transform: translateX(5px); }
-    75% { transform: translateX(-5px); }
-    100% { transform: translateX(0); }
-}
-
-/* Thông báo kết quả */
-.wec-quiz-feedback {
-    margin-top: 15px;
-    font-size: 14px;
-    font-weight: bold;
-    min-height: 20px;
-}
-.wec-quiz-feedback.success { color: #10b981; }
-
-/* Nút gợi ý */
-.wec-hint-btn {
-    margin-top: 10px;
-    font-size: 12px;
-    color: #666;
-    background: none;
-    border: none;
-    cursor: pointer;
-    text-decoration: underline;
+/* RESPONSIVE */
+@media (max-width: 950px) {
+    .wec-video-container-full { flex-direction: column; padding: 0; }
+    .wec-col-video { min-width: 100%; padding-right: 0; }
+    .wec-col-transcript { height: 400px; min-width: 100%; }
 }

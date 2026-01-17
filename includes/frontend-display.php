@@ -3,9 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// --- GIỮ NGUYÊN CÁC HÀM HELPER (wec_get_youtube_id, wec_parse_vtt) --- 
-// (Tôi copy lại để bạn dễ paste cả file)
-
+// --- HELPER FUNCTIONS ---
 function wec_get_youtube_id( $url ) {
     $pattern = '%(?:youtube(?:-nocookie)?\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/ ]{11})%i';
     if ( preg_match( $pattern, $url, $match ) ) return $match[1];
@@ -15,6 +13,7 @@ function wec_get_youtube_id( $url ) {
 function wec_parse_vtt( $vtt_url ) {
     $upload_dir = wp_upload_dir();
     $vtt_path = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $vtt_url );
+
     if ( file_exists( $vtt_path ) ) {
         $content = file_get_contents( $vtt_path );
     } else {
@@ -22,21 +21,30 @@ function wec_parse_vtt( $vtt_url ) {
         if ( is_wp_error( $response ) ) return [];
         $content = wp_remote_retrieve_body( $response );
     }
+    
     $bom = pack('H*','EFBBBF');
     $content = preg_replace("/^$bom/", '', $content);
     $content = str_replace(array("\r\n", "\r"), "\n", $content);
     $lines = explode( "\n", $content );
-    $subs = []; $current_sub = [];
+    
+    $subs = [];
+    $current_sub = [];
+    
     foreach ( $lines as $line ) {
         $line = trim( $line );
         if ( empty( $line ) || $line === 'WEBVTT' || is_numeric($line) ) continue;
+
         if ( preg_match( '/(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})/', $line, $matches ) ) {
             if ( ! empty( $current_sub ) ) { $subs[] = $current_sub; $current_sub = []; }
             $start_parts = explode( ':', $matches[1] );
             $start = $start_parts[0] * 3600 + $start_parts[1] * 60 + (float)$start_parts[2];
             $end_parts = explode( ':', $matches[2] );
             $end = $end_parts[0] * 3600 + $end_parts[1] * 60 + (float)$end_parts[2];
-            $current_sub['start'] = $start; $current_sub['end'] = $end; $current_sub['time_str'] = substr($matches[1], 0, 8); $current_sub['text'] = '';
+
+            $current_sub['start'] = $start;
+            $current_sub['end']   = $end;
+            $current_sub['time_str'] = substr($matches[1], 0, 8); 
+            $current_sub['text'] = '';
         } elseif ( isset( $current_sub['start'] ) ) {
             $current_sub['text'] .= ($current_sub['text'] === '' ? '' : ' ') . $line;
         }
@@ -45,7 +53,7 @@ function wec_parse_vtt( $vtt_url ) {
     return $subs;
 }
 
-// --- CẬP NHẬT GIAO DIỆN 2 CỘT ---
+// --- MAIN FUNCTION (GIAO DIỆN RẠP HÁT + NÚT LUYỆN NGHE) ---
 function wec_add_video_player_to_content( $content ) {
     if ( ! is_singular( 'video_lesson' ) ) return $content;
 
@@ -56,13 +64,14 @@ function wec_add_video_player_to_content( $content ) {
 
     if ( empty( $video_url ) ) return $content;
 
-    // BẮT ĐẦU CONTAINER CHÍNH
+    // CONTAINER FULL WIDTH
     $html = '<div class="wec-video-container-full">';
 
-    // --- CỘT 1: VIDEO ---
+    // CỘT 1: VIDEO
     $html .= '<div class="wec-col-video">';
     $html .= '<div class="wec-video-wrapper">';
     $youtube_id = wec_get_youtube_id( $video_url );
+
     if ( $youtube_id ) {
         $html .= '<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #000;">';
         $html .= '<iframe id="wec-yt-iframe" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src="https://www.youtube.com/embed/' . $youtube_id . '?enablejsapi=1&rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>';
@@ -75,10 +84,10 @@ function wec_add_video_player_to_content( $content ) {
     $html .= '</div>'; // End wrapper
     $html .= '</div>'; // End col-video
 
-    // --- CỘT 2: TRANSCRIPT ---
+    // CỘT 2: TRANSCRIPT
     $html .= '<div class="wec-col-transcript">';
     
-    // Popup
+    // Popup Từ điển
     $html .= '<div id="wec-dict-popup" class="wec-dict-popup" style="display:none;">
                 <div class="wec-dict-header">
                     <span id="wec-dict-word">Word</span> <span id="wec-dict-close">&times;</span>
@@ -87,12 +96,13 @@ function wec_add_video_player_to_content( $content ) {
               </div>';
 
     if ( ! empty( $sub_en_url ) || ! empty( $sub_vi_url ) ) {
+        
         $subs_en = !empty($sub_en_url) ? wec_parse_vtt( $sub_en_url ) : [];
         $subs_vi = !empty($sub_vi_url) ? wec_parse_vtt( $sub_vi_url ) : [];
 
         $html .= '<div class="wec-transcript-box">';
         
-        // Header
+        // TOOLBAR (CÓ THÊM NÚT LUYỆN NGHE)
         $html .= '<div class="wec-transcript-header">
             <div class="wec-title">Transcript</div>
             <div class="wec-modes">
@@ -100,11 +110,13 @@ function wec_add_video_player_to_content( $content ) {
                 <button class="wec-mode-btn" data-mode="en">EN</button>
                 <button class="wec-mode-btn" data-mode="vi">VI</button>
                 <button class="wec-mode-btn" data-mode="hidden">Ẩn</button>
+                <button class="wec-mode-btn" data-mode="dictation" style="border-color:#eab308; color:#a16207;">⚡ Luyện nghe</button>
             </div>
         </div>';
 
         $html .= '<div id="wec-transcript-content" class="mode-bilingual">';
         
+        // Loop Phụ đề
         $base_subs = !empty($subs_en) ? $subs_en : $subs_vi;
         
         foreach ( $base_subs as $index => $sub ) {
@@ -112,26 +124,34 @@ function wec_add_video_player_to_content( $content ) {
             $end   = $sub['end'];
             $time_str = $sub['time_str'];
             
+            // Xử lý Text EN (Tách từ)
             $text_en_html = '';
             if ( !empty($subs_en) ) {
                 $raw_en = isset($subs_en[$index]) ? $subs_en[$index]['text'] : '';
                 $words = explode( ' ', esc_html($raw_en) );
                 foreach ( $words as $word ) {
-                    if ( trim($word) !== '' ) $text_en_html .= '<span class="wec-word">' . $word . '</span> '; 
+                    if ( trim($word) !== '' ) {
+                        $text_en_html .= '<span class="wec-word">' . $word . '</span> '; 
+                    }
                 }
             }
 
+            // Xử lý Text VI (Smart Merge)
             $text_vi_html = '';
             if ( !empty($subs_vi) ) {
                 $best_match_vi = '';
                 $min_diff = 2.0;
                 foreach($subs_vi as $vi_item) {
                     $diff = abs($vi_item['start'] - $start);
-                    if ( $diff < $min_diff ) { $min_diff = $diff; $best_match_vi = $vi_item['text']; }
+                    if ( $diff < $min_diff ) {
+                        $min_diff = $diff;
+                        $best_match_vi = $vi_item['text'];
+                    }
                 }
                 $text_vi_html = esc_html($best_match_vi);
             }
 
+            // Render Dòng
             $html .= sprintf(
                 '<div class="wec-transcript-line" data-start="%s" data-end="%s">
                     <div class="wec-time">[%s]</div> 
@@ -140,16 +160,21 @@ function wec_add_video_player_to_content( $content ) {
                         <div class="wec-sub-vi">%s</div>
                     </div>
                 </div>',
-                $start, $end, $time_str, $text_en_html, $text_vi_html
+                $start,
+                $end,
+                $time_str,
+                $text_en_html,
+                $text_vi_html
             );
         }
+        
         $html .= '</div></div>'; // End content & box
     }
     $html .= '</div>'; // End col-transcript
 
     $html .= '</div>'; // End container-full
 
-    // Nối nội dung bài viết gốc vào bên dưới (nếu có)
+    // Trả về HTML: Player + Nội dung bài viết
     return $html . '<div style="margin-top:30px; clear:both;">' . $content . '</div>';
 }
 add_filter( 'the_content', 'wec_add_video_player_to_content' );
