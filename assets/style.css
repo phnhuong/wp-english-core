@@ -69,3 +69,98 @@
     line-height: 1.5;
     font-size: 15px;
 }
+/* --- CODE CŨ GIỮ NGUYÊN --- */
+.wec-transcript-box {
+    border: 1px solid #e5e7eb;
+    margin-top: 20px;
+    background: #ffffff;
+    border-radius: 8px;
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+.wec-transcript-header {
+    padding: 15px;
+    background: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+    font-weight: bold;
+}
+#wec-transcript-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+.wec-transcript-line {
+    display: flex;
+    align-items: baseline;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    border-radius: 6px;
+    border-left: 3px solid transparent;
+}
+.wec-transcript-line:hover { background-color: #f3f4f6; }
+.wec-transcript-line.active {
+    background-color: #dbeafe;
+    border-left-color: #2563eb;
+}
+.wec-transcript-line.active .wec-text {
+    color: #1e40af;
+    font-weight: 600;
+}
+.wec-time {
+    font-family: monospace;
+    font-size: 0.85em;
+    color: #9ca3af;
+    min-width: 80px;
+    margin-right: 15px;
+    user-select: none;
+}
+.wec-text { flex: 1; line-height: 1.5; font-size: 15px; }
+
+/* --- CODE MỚI: TỪ VỰNG & POPUP --- */
+.wec-word {
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 0 2px;
+    transition: background 0.1s;
+}
+.wec-word:hover {
+    background-color: #fde047; /* Vàng sáng */
+    color: #000;
+}
+
+/* Popup Từ điển */
+.wec-dict-popup {
+    position: fixed; 
+    z-index: 99999;
+    background: #fff;
+    width: 320px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    font-family: sans-serif;
+    overflow: hidden;
+    animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.wec-dict-header {
+    background: #2563eb;
+    color: #fff;
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+#wec-dict-word { font-weight: bold; font-size: 18px; text-transform: capitalize; }
+#wec-dict-close { cursor: pointer; font-size: 24px; line-height: 1; opacity: 0.8; }
+#wec-dict-close:hover { opacity: 1; }
+
+#wec-dict-body {
+    padding: 20px;
+    color: #374151;
+    line-height: 1.6;
+    font-size: 15px;
+}

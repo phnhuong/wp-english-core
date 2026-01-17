@@ -3,27 +3,17 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-/**
- * Helper: Lấy ID Youtube từ URL
- */
+// --- GIỮ NGUYÊN HÀM HELPER CŨ ---
 function wec_get_youtube_id( $url ) {
     $pattern = '%(?:youtube(?:-nocookie)?\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/ ]{11})%i';
-    if ( preg_match( $pattern, $url, $match ) ) {
-        return $match[1];
-    }
+    if ( preg_match( $pattern, $url, $match ) ) return $match[1];
     return false;
 }
 
-/**
- * Helper: Parse VTT (Đọc Local Path & Fix lỗi UTF-8)
- */
 function wec_parse_vtt( $vtt_url ) {
+    // Logic đọc file Local Path (Giữ nguyên như cũ)
     $upload_dir = wp_upload_dir();
-    $base_url   = $upload_dir['baseurl'];
-    $base_dir   = $upload_dir['basedir'];
-    
-    // Thay thế URL bằng đường dẫn thư mục để đọc local
-    $vtt_path = str_replace( $base_url, $base_dir, $vtt_url );
+    $vtt_path = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $vtt_url );
 
     if ( file_exists( $vtt_path ) ) {
         $content = file_get_contents( $vtt_path );
@@ -33,11 +23,8 @@ function wec_parse_vtt( $vtt_url ) {
         $content = wp_remote_retrieve_body( $response );
     }
     
-    // Xử lý BOM
     $bom = pack('H*','EFBBBF');
     $content = preg_replace("/^$bom/", '', $content);
-    
-    // Chuẩn hóa xuống dòng
     $content = str_replace(array("\r\n", "\r"), "\n", $content);
     $lines = explode( "\n", $content );
     
@@ -49,10 +36,8 @@ function wec_parse_vtt( $vtt_url ) {
         if ( empty( $line ) || $line === 'WEBVTT' || is_numeric($line) ) continue;
 
         if ( preg_match( '/(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})/', $line, $matches ) ) {
-            if ( ! empty( $current_sub ) ) {
-                $subs[] = $current_sub;
-                $current_sub = [];
-            }
+            if ( ! empty( $current_sub ) ) { $subs[] = $current_sub; $current_sub = []; }
+            
             $start_parts = explode( ':', $matches[1] );
             $start = $start_parts[0] * 3600 + $start_parts[1] * 60 + (float)$start_parts[2];
             
@@ -67,15 +52,11 @@ function wec_parse_vtt( $vtt_url ) {
             $current_sub['text'] .= ($current_sub['text'] === '' ? '' : ' ') . $line;
         }
     }
-    if ( ! empty( $current_sub ) ) {
-        $subs[] = $current_sub;
-    }
+    if ( ! empty( $current_sub ) ) { $subs[] = $current_sub; }
     return $subs;
 }
 
-/**
- * Main: Render Video + Transcript
- */
+// --- CẬP NHẬT HÀM CHÍNH (THÊM POPUP & TÁCH TỪ) ---
 function wec_add_video_player_to_content( $content ) {
     if ( ! is_singular( 'video_lesson' ) ) return $content;
 
@@ -100,15 +81,35 @@ function wec_add_video_player_to_content( $content ) {
     }
     $player_html .= '</div>';
 
-    // 2. TRANSCRIPT BOX
-    $transcript_html = '';
+    // 2. DICTIONARY POPUP (MỚI)
+    $transcript_html = '<div id="wec-dict-popup" class="wec-dict-popup" style="display:none;">
+                            <div class="wec-dict-header">
+                                <span id="wec-dict-word">Word</span>
+                                <span id="wec-dict-close">&times;</span>
+                            </div>
+                            <div id="wec-dict-body">Đang tải nghĩa...</div>
+                         </div>';
+
+    // 3. TRANSCRIPT BOX
     if ( ! empty( $subtitle_url ) ) {
         $subs = wec_parse_vtt( $subtitle_url );
         if ( ! empty( $subs ) ) {
             $transcript_html .= '<div class="wec-transcript-box">';
             $transcript_html .= '<div class="wec-transcript-header">Lời thoại (Transcript)</div>';
             $transcript_html .= '<div id="wec-transcript-content">';
+            
             foreach ( $subs as $sub ) {
+                // LOGIC TÁCH TỪ (MỚI)
+                $raw_text = esc_html( $sub['text'] );
+                $words = explode( ' ', $raw_text );
+                $processed_text = '';
+                foreach ( $words as $word ) {
+                    if ( trim($word) !== '' ) {
+                        // Thêm class wec-word để JS bắt sự kiện
+                        $processed_text .= '<span class="wec-word">' . $word . '</span> '; 
+                    }
+                }
+
                 $transcript_html .= sprintf(
                     '<div class="wec-transcript-line" data-start="%s" data-end="%s">
                         <span class="wec-time">[%s]</span> 
@@ -117,7 +118,7 @@ function wec_add_video_player_to_content( $content ) {
                     $sub['start'],
                     $sub['end'],
                     $sub['time_str'],
-                    esc_html( $sub['text'] )
+                    $processed_text // Text đã tách
                 );
             }
             $transcript_html .= '</div></div>';

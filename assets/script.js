@@ -1,4 +1,3 @@
-// Biến toàn cục cho Youtube Player
 var wecPlayer; 
 var isYoutube = false;
 
@@ -6,104 +5,139 @@ document.addEventListener('DOMContentLoaded', function() {
     const transcriptContainer = document.getElementById('wec-transcript-content');
     const mp4Player = document.getElementById('wec-main-player');
     const iframeElement = document.getElementById('wec-yt-iframe');
+    
+    // Elements Popup
+    const popup = document.getElementById('wec-dict-popup');
+    const popupWord = document.getElementById('wec-dict-word');
+    const popupBody = document.getElementById('wec-dict-body');
+    const popupClose = document.getElementById('wec-dict-close');
 
-    // Nếu không có transcript thì không làm gì cả
     if (!transcriptContainer) return;
 
-    // --- HÀM DÙNG CHUNG ---
-    function highlightLine(currentTime) {
-        // Tìm dòng thoại phù hợp với thời gian hiện tại
-        // Logic tối ưu: Chỉ loop qua các dòng chưa active để đỡ lag nếu transcript dài
-        const lines = document.querySelectorAll('.wec-transcript-line');
-        
-        let foundActive = false;
+    // --- HÀM PLAYER ---
+    function pauseVideo() {
+        if (isYoutube && wecPlayer && typeof wecPlayer.pauseVideo === 'function') wecPlayer.pauseVideo();
+        if (mp4Player) mp4Player.pause();
+    }
+    
+    function playVideo() {
+        if (isYoutube && wecPlayer) wecPlayer.playVideo();
+        if (mp4Player) mp4Player.play();
+    }
 
-        lines.forEach(line => {
-            const start = parseFloat(line.dataset.start);
-            const end = parseFloat(line.dataset.end);
-
-            if (currentTime >= start && currentTime < end) { // Dùng < end để tránh trùng
-                if (!line.classList.contains('active')) {
-                    // Xóa class active ở các dòng khác
-                    document.querySelectorAll('.wec-transcript-line.active').forEach(l => l.classList.remove('active'));
-                    
-                    line.classList.add('active');
-                    // Cuộn box xuống dòng đang đọc
-                    line.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-                foundActive = true;
-            }
-        });
-        
-        // Nếu không tìm thấy dòng nào (đoạn nhạc dạo), xóa active cũ
-        if (!foundActive && document.querySelector('.wec-transcript-line.active')) {
-             // Giữ lại dòng cuối cùng hoặc xóa tùy logic, ở đây ta giữ nguyên để người dùng dễ theo dõi
+    function seekVideo(time) {
+        if (isYoutube && wecPlayer) {
+            wecPlayer.seekTo(time, true);
+            wecPlayer.playVideo();
+        } else if (mp4Player) {
+            mp4Player.currentTime = time;
+            mp4Player.play();
         }
     }
 
-    // --- XỬ LÝ CLICK VÀO DÒNG THOẠI (TUA VIDEO) ---
+    // --- HÀM CLICK ---
     transcriptContainer.addEventListener('click', function(e) {
+        // TRƯỜNG HỢP 1: Click vào TỪ (Tra từ điển)
+        if (e.target.classList.contains('wec-word')) {
+            e.stopPropagation(); // QUAN TRỌNG: Ngăn không cho tua video
+            
+            // Dừng video ngay
+            pauseVideo();
+
+            // Lấy từ vựng
+            let word = e.target.innerText;
+            // Xóa dấu câu thừa (ví dụ "Hello," -> "Hello")
+            word = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+
+            // Hiện Popup
+            showPopup(word, e.clientX, e.clientY);
+            return;
+        }
+
+        // TRƯỜNG HỢP 2: Click vào DÒNG (Tua video)
         const line = e.target.closest('.wec-transcript-line');
         if (line) {
             const seekTime = parseFloat(line.dataset.start);
-            
-            if (isYoutube && wecPlayer && typeof wecPlayer.seekTo === 'function') {
-                wecPlayer.seekTo(seekTime, true);
-                wecPlayer.playVideo();
-            } else if (mp4Player) {
-                mp4Player.currentTime = seekTime;
-                mp4Player.play();
+            seekVideo(seekTime);
+        }
+    });
+
+    // --- HÀM POPUP ---
+    function showPopup(word, x, y) {
+        if(!popup) return;
+        popupWord.innerText = word;
+        popupBody.innerHTML = `Đang tra nghĩa từ: <b>${word}</b>...<br><i style="color:#666; font-size:13px;">(Tính năng API từ điển sẽ có ở Giai đoạn 2)</i>`;
+        
+        popup.style.display = 'block';
+        
+        // Tính toán vị trí Popup để không bị che
+        // Lấy chiều rộng màn hình
+        const winWidth = window.innerWidth;
+        const popupWidth = 320;
+        
+        let left = x;
+        if (x + popupWidth > winWidth) {
+            left = winWidth - popupWidth - 20; // Dịch sang trái nếu sát lề phải
+        }
+        
+        popup.style.top = (y + 15) + 'px';
+        popup.style.left = left + 'px';
+    }
+
+    // Đóng Popup
+    if (popupClose) {
+        popupClose.addEventListener('click', () => { popup.style.display = 'none'; });
+    }
+    // Click ra ngoài thì đóng
+    document.addEventListener('click', (e) => {
+        if (popup && popup.style.display === 'block') {
+            if (!popup.contains(e.target) && !e.target.classList.contains('wec-word')) {
+                popup.style.display = 'none';
             }
         }
     });
 
-    // --- LOGIC 1: NẾU LÀ FILE MP4 THƯỜNG ---
-    if (mp4Player) {
-        mp4Player.addEventListener('timeupdate', function() {
-            highlightLine(mp4Player.currentTime);
+    // --- LOGIC HIGHLIGHT VÀ YOUTUBE ---
+    function highlightLine(currentTime) {
+        const lines = document.querySelectorAll('.wec-transcript-line');
+        lines.forEach(line => {
+            const start = parseFloat(line.dataset.start);
+            const end = parseFloat(line.dataset.end);
+            if (currentTime >= start && currentTime < end) {
+                if (!line.classList.contains('active')) {
+                    document.querySelectorAll('.wec-transcript-line.active').forEach(l => l.classList.remove('active'));
+                    line.classList.add('active');
+                    line.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
         });
     }
 
-    // --- LOGIC 2: NẾU LÀ YOUTUBE (IFRAME API) ---
+    if (mp4Player) {
+        mp4Player.addEventListener('timeupdate', () => highlightLine(mp4Player.currentTime));
+    }
+
     if (iframeElement) {
         isYoutube = true;
-        
-        // 1. Inject Youtube API Script vào trang web
         if (!window.YT) {
             var tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
             var firstScriptTag = document.getElementsByTagName('script')[0];
             firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         }
-
-        // 2. Hàm callback khi Youtube API tải xong
         window.onYouTubeIframeAPIReady = function() {
             wecPlayer = new YT.Player('wec-yt-iframe', {
                 events: {
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
+                    'onStateChange': function(event) {
+                        if (event.data == YT.PlayerState.PLAYING) {
+                            var timerID = setInterval(() => {
+                                if(wecPlayer.getPlayerState() != YT.PlayerState.PLAYING) clearInterval(timerID);
+                                highlightLine(wecPlayer.getCurrentTime());
+                            }, 250);
+                        }
+                    }
                 }
             });
         };
-
-        // 3. Khi Player sẵn sàng -> Tạo vòng lặp kiểm tra thời gian
-        // Youtube không có sự kiện timeupdate liên tục như HTML5, ta phải dùng setInterval
-        var timerID;
-        function onPlayerReady(event) {
-            // Player đã sẵn sàng
-        }
-
-        function onPlayerStateChange(event) {
-            if (event.data == YT.PlayerState.PLAYING) {
-                // Nếu đang chạy -> Bắt đầu loop lấy thời gian (0.5 giây/lần)
-                timerID = setInterval(function() {
-                    var currentTime = wecPlayer.getCurrentTime();
-                    highlightLine(currentTime);
-                }, 250); // 250ms check 1 lần cho mượt
-            } else {
-                // Nếu dừng -> Xóa loop đỡ tốn tài nguyên
-                clearInterval(timerID);
-            }
-        }
     }
 });
