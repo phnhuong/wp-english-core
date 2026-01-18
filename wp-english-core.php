@@ -3,7 +3,7 @@
  * Plugin Name: WP English Core
  * Plugin URI:  http://english.phamhong.net
  * Description: Plugin cốt lõi quản lý Video, Phụ đề và Tính năng học Tiếng Anh.
- * Version:     1.2.0
+ * Version:     1.2.1
  * Author:      Pham Hong Team
  * Author URI:  http://english.phamhong.net
  * Text Domain: wp-english-core
@@ -17,12 +17,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'WEC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WEC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
-// 2. INCLUDES (Load đầy đủ 5 file chức năng)
+// 2. INCLUDES
 require_once WEC_PLUGIN_DIR . 'includes/cpt-video.php';
 require_once WEC_PLUGIN_DIR . 'includes/metabox-video.php';
 require_once WEC_PLUGIN_DIR . 'includes/frontend-display.php';
 require_once WEC_PLUGIN_DIR . 'includes/dictionary-ajax.php';
-require_once WEC_PLUGIN_DIR . 'includes/shortcode-vocab.php'; // <--- File mới thêm
+require_once WEC_PLUGIN_DIR . 'includes/shortcode-vocab.php';
 
 // 3. ALLOW VTT UPLOAD
 function wec_allow_vtt_upload( $mimes ) {
@@ -31,9 +31,10 @@ function wec_allow_vtt_upload( $mimes ) {
 }
 add_filter( 'upload_mimes', 'wec_allow_vtt_upload' );
 
-// 4. ENQUEUE SCRIPTS
+// 4. ENQUEUE SCRIPTS (SỬA LỖI: Load script trên cả Page để chạy Quiz)
 function wec_enqueue_scripts() {
-    if ( is_singular( 'video_lesson' ) ) {
+    // Cho phép chạy trên Video Lesson HOẶC Trang bình thường (is_page)
+    if ( is_singular( 'video_lesson' ) || is_page() ) {
         wp_enqueue_style( 'wec-style', WEC_PLUGIN_URL . 'assets/style.css', array(), time() );
         wp_enqueue_script( 'wec-script', WEC_PLUGIN_URL . 'assets/script.js', array('jquery'), time(), true );
 

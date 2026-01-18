@@ -146,3 +146,81 @@
     .wec-col-video { min-width: 100%; padding-right: 0; }
     .wec-col-transcript { height: 400px; min-width: 100%; }
 }
+/* --- VOCAB QUIZ GAME --- */
+#wec-quiz-container {
+    max-width: 600px;
+    margin: 30px auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+    font-family: sans-serif;
+    border: 1px solid #e5e7eb;
+}
+
+.wec-quiz-header {
+    background: #4f46e5;
+    color: #fff;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.wec-quiz-header h3 { margin: 0; color: #fff; font-size: 18px; }
+#wec-quiz-score { font-weight: bold; background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 20px; }
+
+#wec-quiz-card { padding: 30px; text-align: center; }
+
+#wec-quiz-question {
+    font-size: 28px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 30px;
+    min-height: 40px;
+}
+
+#wec-quiz-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.wec-quiz-btn {
+    padding: 15px;
+    font-size: 16px;
+    border: 2px solid #e5e7eb;
+    background: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #4b5563;
+}
+.wec-quiz-btn:hover { background: #f9fafb; border-color: #d1d5db; }
+
+/* Trạng thái đúng sai */
+.wec-quiz-btn.correct {
+    background: #d1fae5;
+    border-color: #10b981;
+    color: #065f46;
+}
+.wec-quiz-btn.wrong {
+    background: #fee2e2;
+    border-color: #ef4444;
+    color: #991b1b;
+    opacity: 0.6;
+}
+
+#wec-quiz-start-btn {
+    grid-column: span 2;
+    background: #4f46e5;
+    color: #fff;
+    border: none;
+    font-weight: bold;
+}
+#wec-quiz-start-btn:hover { background: #4338ca; }
+
+/* Mobile Quiz */
+@media (max-width: 600px) {
+    #wec-quiz-options { grid-template-columns: 1fr; }
+    #wec-quiz-start-btn { grid-column: span 1; }
+}

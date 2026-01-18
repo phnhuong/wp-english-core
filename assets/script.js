@@ -1,9 +1,9 @@
 var wecPlayer; 
 var isYoutube = false;
-var currentMode = 'bilingual'; // Theo dõi chế độ hiện tại
+var currentMode = 'bilingual';
 
 document.addEventListener('DOMContentLoaded', function() {
-    // --- UI MOVER (Giữ nguyên) ---
+    // --- UI MOVER ---
     const playerContainer = document.querySelector('.wec-video-container-full');
     const siteHeader = document.querySelector('header') || document.querySelector('.site-header');
     if (playerContainer) {
@@ -22,79 +22,161 @@ document.addEventListener('DOMContentLoaded', function() {
     const popupClose = document.getElementById('wec-dict-close');
     const modeBtns = document.querySelectorAll('.wec-mode-btn');
 
-    if (!transcriptContainer) return;
+    // --- LOGIC TRẮC NGHIỆM TỪ VỰNG (NÂNG CẤP: FEEDBACK & SUMMARY) ---
+    const quizStartBtn = document.getElementById('wec-quiz-start-btn');
+    if (quizStartBtn && typeof wecQuizData !== 'undefined') {
+        let score = 0;
+        let questionIndex = 0;
+        let totalQuestions = 5; // Số câu hỏi mỗi lượt chơi (có thể tăng lên)
+        let quizPool = [];
 
-    // --- TOOLBAR ---
+        quizStartBtn.addEventListener('click', startQuiz);
+
+        function startQuiz() {
+            score = 0;
+            questionIndex = 0;
+            // Trộn danh sách từ để tạo bộ câu hỏi ngẫu nhiên
+            quizPool = [...wecQuizData].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
+            
+            // Ẩn nút bắt đầu, hiện câu hỏi đầu tiên
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            // KIỂM TRA KẾT THÚC GAME
+            if (questionIndex >= quizPool.length) {
+                showSummary();
+                return;
+            }
+
+            const question = quizPool[questionIndex];
+            
+            // Tạo 3 đáp án sai
+            let answers = [question];
+            while (answers.length < 4) {
+                const randomItem = wecQuizData[Math.floor(Math.random() * wecQuizData.length)];
+                // Đảm bảo đáp án sai không trùng đáp án đúng và không trùng nhau
+                if (!answers.includes(randomItem) && randomItem.word !== question.word) {
+                    answers.push(randomItem);
+                }
+            }
+            answers.sort(() => Math.random() - 0.5);
+
+            // Render
+            const qDiv = document.getElementById('wec-quiz-question');
+            const oDiv = document.getElementById('wec-quiz-options');
+            const feedbackDiv = document.getElementById('wec-quiz-feedback') || document.createElement('div');
+            
+            // Reset giao diện
+            qDiv.innerHTML = `Câu ${questionIndex + 1}/${quizPool.length}: <br><span style="color:#2563eb">${question.word}</span> nghĩa là?`;
+            oDiv.innerHTML = '';
+            feedbackDiv.innerHTML = ''; // Xóa feedback cũ
+
+            answers.forEach(ans => {
+                const btn = document.createElement('button');
+                btn.className = 'wec-quiz-btn';
+                btn.innerText = ans.meaning;
+                btn.onclick = () => {
+                    // --- LOGIC CHẤM ĐIỂM & FEEDBACK ---
+                    const allBtns = oDiv.querySelectorAll('button');
+                    allBtns.forEach(b => b.disabled = true); // Khóa tất cả nút
+
+                    if (ans.word === question.word) {
+                        btn.classList.add('correct');
+                        score++;
+                        document.getElementById('wec-quiz-score').innerText = 'Điểm: ' + (score * 10);
+                        // Hiệu ứng âm thanh (nếu muốn) hoặc visual
+                    } else {
+                        btn.classList.add('wrong');
+                        // Hiện đáp án đúng để học viên biết
+                        allBtns.forEach(b => {
+                            if (b.innerText === question.meaning) {
+                                b.classList.add('correct');
+                                b.style.opacity = '1'; // Làm nổi bật đáp án đúng
+                            } else if (b !== btn) {
+                                b.style.opacity = '0.5'; // Làm mờ các đáp án khác
+                            }
+                        });
+                    }
+                    
+                    questionIndex++;
+                    // Chờ 1.5s để người dùng xem kết quả rồi mới chuyển
+                    setTimeout(nextQuestion, 1500);
+                };
+                oDiv.appendChild(btn);
+            });
+        }
+
+        function showSummary() {
+            const card = document.getElementById('wec-quiz-card');
+            const percentage = Math.round((score / quizPool.length) * 100);
+            let message = '';
+            if (percentage >= 80) message = 'Xuất sắc! 🎉';
+            else if (percentage >= 50) message = 'Khá tốt! 👍';
+            else message = 'Cố gắng hơn nhé! 💪';
+
+            card.innerHTML = `
+                <h2 style="color:#333; margin-bottom:10px;">Kết thúc!</h2>
+                <div style="font-size:48px; font-weight:bold; color:#2563eb; margin-bottom:10px;">${score}/${quizPool.length}</div>
+                <p style="font-size:18px; color:#666; margin-bottom:30px;">${message}</p>
+                <button id="wec-quiz-restart-btn" style="padding:12px 25px; background:#10b981; color:#fff; border:none; border-radius:5px; cursor:pointer; font-size:16px;">Chơi lại</button>
+                <br><br>
+                <a href="${location.pathname.replace('trac-nghiem-tu-vung', 'kho-tu-vung-cua-toi')}" style="color:#2563eb; text-decoration:none;">← Về kho từ vựng</a>
+            `;
+
+            document.getElementById('wec-quiz-restart-btn').addEventListener('click', function() {
+                location.reload(); // Reload trang để reset game đơn giản nhất
+            });
+        }
+    }
+
+    if (!transcriptContainer) return; // --- DỪNG NẾU KHÔNG Ở TRANG BÀI HỌC ---
+
+    // --- CÁC PHẦN DƯỚI GIỮ NGUYÊN (PLAYER, DICTATION...) ---
     if (modeBtns) {
         modeBtns.forEach(btn => {
             btn.addEventListener('click', function() {
                 modeBtns.forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-                
                 const mode = this.dataset.mode;
-                currentMode = mode; // Cập nhật biến toàn cục
-                
+                currentMode = mode;
                 transcriptContainer.className = ''; 
                 transcriptContainer.classList.add('mode-' + mode);
-                
-                // Nếu bật chế độ Dictation -> Reset lại dòng hiện tại để sinh Quiz
                 if (mode === 'dictation') {
                     const activeLine = document.querySelector('.wec-transcript-line.active');
                     if (activeLine) generateQuiz(activeLine);
                 } else {
-                    // Nếu tắt Dictation -> Khôi phục lại text gốc
                     restoreTranscript();
                 }
             });
         });
     }
 
-    // --- DICTATION LOGIC (MỚI) ---
     function generateQuiz(lineElement) {
-        // Tránh tạo quiz lại nếu đã tạo rồi
         if (lineElement.dataset.quizReady === 'true') return;
-
         const subEnDiv = lineElement.querySelector('.wec-sub-en');
-        const originalHTML = subEnDiv.innerHTML; // Lưu lại HTML gốc để khôi phục
+        const originalHTML = subEnDiv.innerHTML;
         lineElement.dataset.originalHtml = originalHTML;
-
-        // Lấy tất cả các từ (span.wec-word)
         const words = subEnDiv.querySelectorAll('.wec-word');
         let newHTML = '';
-        
         words.forEach((span, index) => {
             const word = span.innerText;
-            // Logic ẩn từ: Ẩn ngẫu nhiên 50% số từ (hoặc từ dài hơn 2 ký tự)
-            // Để demo dễ, ta ẩn các từ ở vị trí chẵn
             if (index % 2 !== 0 && word.length > 1) {
                 newHTML += `<input type="text" class="wec-input-word" data-answer="${word}" placeholder="___"> `;
-            } else {
-                newHTML += `<span class="wec-word">${word}</span> `;
-            }
+            } else { newHTML += `<span class="wec-word">${word}</span> `; }
         });
-
-        // Thêm Feedback area
         newHTML += '<div class="wec-quiz-feedback"></div>';
-        
         subEnDiv.innerHTML = newHTML;
         lineElement.dataset.quizReady = 'true';
-
-        // Gắn sự kiện cho các ô input
         const inputs = subEnDiv.querySelectorAll('.wec-input-word');
         inputs.forEach((input, idx) => {
-            // Khi gõ Enter -> Check
             input.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     checkAnswer(this);
-                    // Focus ô tiếp theo nếu đúng
-                    if (this.classList.contains('correct') && inputs[idx+1]) {
-                        inputs[idx+1].focus();
-                    }
+                    if (this.classList.contains('correct') && inputs[idx+1]) inputs[idx+1].focus();
                 }
             });
         });
-        
-        // Focus ô đầu tiên
         if(inputs.length > 0) inputs[0].focus();
     }
 
@@ -102,28 +184,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const val = input.value.trim().toLowerCase();
         const ans = input.dataset.answer.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
         const cleanVal = val.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-
         if (cleanVal === ans) {
-            input.classList.add('correct');
-            input.classList.remove('incorrect');
-            input.disabled = true; // Khóa lại
-            input.value = input.dataset.answer; // Hiện từ chuẩn (viết hoa đúng)
+            input.classList.add('correct'); input.classList.remove('incorrect');
+            input.disabled = true; input.value = input.dataset.answer;
         } else {
-            input.classList.add('incorrect');
-            // Sau 0.5s bỏ class rung
-            setTimeout(() => input.classList.remove('incorrect'), 500);
+            input.classList.add('incorrect'); setTimeout(() => input.classList.remove('incorrect'), 500);
         }
-        
-        // Kiểm tra xem xong hết chưa -> Chuyển câu
         const line = input.closest('.wec-transcript-line');
         const totalInputs = line.querySelectorAll('.wec-input-word').length;
         const correctInputs = line.querySelectorAll('.wec-input-word.correct').length;
-        
-        const feedback = line.querySelector('.wec-quiz-feedback');
         if (totalInputs === correctInputs) {
-            feedback.innerHTML = '<span class="success">✨ Chính xác! Chuyển câu...</span>';
+            line.querySelector('.wec-quiz-feedback').innerHTML = '<span class="success">✨ Chính xác!</span>';
             setTimeout(() => {
-                // Logic chuyển câu tiếp theo (tìm line kế tiếp và click vào nó để trigger seek)
                 const nextLine = line.nextElementSibling;
                 if(nextLine) {
                     const start = parseFloat(nextLine.dataset.start);
@@ -143,58 +215,40 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- PLAYER CONTROLS & LOOP LOGIC ---
     function pauseVideo() {
         if (isYoutube && wecPlayer && typeof wecPlayer.pauseVideo === 'function') wecPlayer.pauseVideo();
         if (mp4Player) mp4Player.pause();
     }
-    
     function seekVideo(time) {
-        if (isYoutube && wecPlayer) {
-            wecPlayer.seekTo(time, true); wecPlayer.playVideo();
-        } else if (mp4Player) {
-            mp4Player.currentTime = time; mp4Player.play();
-        }
+        if (isYoutube && wecPlayer) { wecPlayer.seekTo(time, true); wecPlayer.playVideo(); }
+        else if (mp4Player) { mp4Player.currentTime = time; mp4Player.play(); }
     }
 
-    // --- HIGHLIGHT & LOOP (QUAN TRỌNG CHO QUIZ) ---
     function highlightLine(currentTime) {
         const lines = document.querySelectorAll('.wec-transcript-line');
         lines.forEach(line => {
             const start = parseFloat(line.dataset.start);
             const end = parseFloat(line.dataset.end);
-            
-            // LOGIC LOOP: Nếu đang ở chế độ Dictation
             if (currentMode === 'dictation' && line.classList.contains('active')) {
-                // Nếu video chạy quá thời gian kết thúc của câu -> Tua lại đầu câu
-                if (currentTime > end) {
-                    seekVideo(start);
-                    return;
-                }
+                if (currentTime > end) { seekVideo(start); return; }
             }
-
             if (currentTime >= start && currentTime < end) {
                 if (!line.classList.contains('active')) {
                     document.querySelectorAll('.wec-transcript-line.active').forEach(l => l.classList.remove('active'));
                     line.classList.add('active');
                     line.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    
-                    // Nếu là Dictation -> Tạo Quiz cho dòng mới active này
                     if (currentMode === 'dictation') generateQuiz(line);
                 }
             }
         });
     }
 
-    // --- INIT PLAYER EVENTS ---
     if (mp4Player) mp4Player.addEventListener('timeupdate', () => highlightLine(mp4Player.currentTime));
     if (iframeElement) {
         isYoutube = true;
         if (!window.YT) {
-            var tag = document.createElement('script');
-            tag.src = "https://www.youtube.com/iframe_api";
-            var firstScriptTag = document.getElementsByTagName('script')[0];
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            var tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api";
+            var firstScriptTag = document.getElementsByTagName('script')[0]; firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         }
         window.onYouTubeIframeAPIReady = function() {
             wecPlayer = new YT.Player('wec-yt-iframe', {
@@ -212,8 +266,6 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // --- OTHER CLICK EVENTS (Save, Popup...) ---
-    // (Giữ nguyên logic cũ)
     document.addEventListener('click', function(e) {
         if (popup && popup.style.display === 'block') {
             if (!popup.contains(e.target) && !e.target.classList.contains('wec-word')) popup.style.display = 'none';
@@ -225,42 +277,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 url: wec_params.ajax_url, type: 'POST',
                 data: { action: 'wec_save_word', word: btn.dataset.word, meaning: btn.dataset.meaning, video_id: wec_params.post_id || 0 },
                 success: function(res) {
-                    if(res.success) { btn.innerText = '✔ Đã lưu'; setTimeout(() => { btn.disabled = false; }, 2000); }
-                    else { alert(res.data); btn.disabled = false; }
-                }
+                    if(res.success) { btn.innerText = '✔ ' + (res.data === 'Từ này đã lưu rồi.' ? 'Đã có' : 'Đã lưu'); setTimeout(() => { btn.disabled = false; }, 2000); }
+                    else { alert(res.data); btn.innerText = 'Lỗi'; btn.disabled = false; }
+                },
+                error: function(xhr) { console.error(xhr.responseText); alert('Lỗi kết nối Server'); btn.disabled = false; }
             });
         }
     });
 
     transcriptContainer.addEventListener('click', function(e) {
-        // Nếu đang ở Dictation mode thì không cho click từ để tra cứu (tránh xung đột input)
         if (currentMode === 'dictation' && e.target.tagName === 'INPUT') return;
-
         if (e.target.classList.contains('wec-word')) {
-            if (currentMode === 'dictation') return; // Không tra từ khi đang làm bài tập
+            if (currentMode === 'dictation') return;
             e.stopPropagation(); pauseVideo();
             let word = e.target.innerText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
             showPopup(word, e.clientX, e.clientY);
             return;
         }
         const line = e.target.closest('.wec-transcript-line');
-        if (line) {
-            const seekTime = parseFloat(line.dataset.start);
-            seekVideo(seekTime);
-        }
+        if (line) { const seekTime = parseFloat(line.dataset.start); seekVideo(seekTime); }
     });
 
-    function showPopup(word, x, y) { /* Code cũ giữ nguyên */ 
+    function showPopup(word, x, y) {
         if(!popup) return;
         popupWord.innerText = word; popupBody.innerHTML = 'Loading...'; popup.style.display = 'block';
-        const winWidth = window.innerWidth;
-        let left = x; if (x + 320 > winWidth) left = winWidth - 320 - 20;
+        const winWidth = window.innerWidth; let left = x;
+        if (x + 320 > winWidth) left = winWidth - 320 - 20;
         popup.style.top = (y + 15) + 'px'; popup.style.left = left + 'px';
         jQuery.ajax({
             url: wec_params.ajax_url, type: 'GET', data: { action: 'wec_lookup_word', word: word },
             success: function(response) {
                 if (response.success) {
-                    popupBody.innerHTML = `Nghĩa: <b>${response.data.meaning}</b><br><button id="wec-btn-save" data-word="${word}" data-meaning="${response.data.meaning}" style="margin-top:5px;">+ Lưu</button>`;
+                    popupBody.innerHTML = `Nghĩa: <b>${response.data.meaning}</b><br><button id="wec-btn-save" data-word="${word}" data-meaning="${response.data.meaning}" style="margin-top:5px; background:#2563eb; color:#fff; border:none; padding:5px; border-radius:3px;">+ Lưu</button>`;
                 }
             }
         });
