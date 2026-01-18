@@ -23,7 +23,7 @@ require_once WEC_PLUGIN_DIR . 'includes/metabox-video.php';
 require_once WEC_PLUGIN_DIR . 'includes/frontend-display.php';
 require_once WEC_PLUGIN_DIR . 'includes/dictionary-ajax.php';
 require_once WEC_PLUGIN_DIR . 'includes/shortcode-vocab.php';
-// ...
+require_once WEC_PLUGIN_DIR . 'includes/shortcode-vip.php'; // <--- MỚI THÊM
 require_once WEC_PLUGIN_DIR . 'includes/membership.php'; // <--- MỚI THÊM
 require_once WEC_PLUGIN_DIR . 'includes/auth.php'; // <--- MỚI THÊM
 // ...
