@@ -1,226 +1,246 @@
-/* --- 1. LAYOUT RẠP HÁT (FULL WIDTH) --- */
+/* --- 1. GLOBAL LAYOUT (THEATER MODE) --- */
 .wec-video-container-full {
     width: 100%;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 0;
-    background-color: #1a1a1a;
-    padding: 20px 10px;
+    background-color: #111827; /* Nền tối sang trọng */
+    padding: 30px 15px;
     box-sizing: border-box;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     position: relative;
-    z-index: 99; /* Đảm bảo nổi lên trên */
+    z-index: 5;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 /* Cột TRÁI: Video */
 .wec-col-video {
     flex: 2;
     min-width: 600px;
-    max-width: 1100px;
-    padding-right: 20px;
+    max-width: 1150px;
+    padding-right: 25px;
 }
 
 /* Cột PHẢI: Transcript */
 .wec-col-transcript {
     flex: 1;
-    min-width: 320px;
-    height: 550px;
+    min-width: 340px;
+    height: 550px; /* Chiều cao cố định */
 }
 
-/* --- 2. VIDEO PLAYER --- */
+/* --- 2. VIDEO PLAYER STYLE --- */
 .wec-video-wrapper {
     background: #000;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-    border: 1px solid #333;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    border: 1px solid #374151;
 }
 
-/* --- 3. TRANSCRIPT BOX --- */
+/* --- 3. TRANSCRIPT BOX (MODERN UI) --- */
 .wec-transcript-box {
     background: #ffffff;
     border-radius: 8px;
     height: 100%; 
-    display: flex;
-    flex-direction: column;
+    display: block; /* Dùng Block Layout */
     overflow: hidden;
+    position: relative;
+    border: 1px solid #d1d5db;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-/* Header & Toolbar */
+/* Header (Toolbar) - Cố định trên đầu */
 .wec-transcript-header {
-    padding: 10px;
-    background: #f1f5f9;
-    border-bottom: 1px solid #e2e8f0;
+    height: 56px;
+    width: 100%;
+    padding: 0 15px;
+    background: #f3f4f6; /* Màu xám nhạt */
+    border-bottom: 1px solid #e5e7eb;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    box-sizing: border-box;
+    position: absolute;
+    top: 0; left: 0; z-index: 20;
 }
-.wec-title { font-weight: bold; font-size: 16px; color: #333; }
 
-.wec-modes { display: flex; gap: 5px; }
+.wec-title { 
+    font-weight: 700; 
+    font-size: 15px; 
+    color: #1f2937; 
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Buttons */
+.wec-modes { display: flex; gap: 6px; }
 .wec-mode-btn {
-    border: 1px solid #cbd5e1;
+    border: 1px solid #d1d5db;
     background: #fff;
-    padding: 4px 10px;
+    padding: 5px 10px;
     font-size: 12px;
     border-radius: 4px;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
+    color: #4b5563;
+    transition: all 0.2s ease;
 }
-.wec-mode-btn:hover { background: #e2e8f0; }
-.wec-mode-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+.wec-mode-btn:hover { 
+    background: #e5e7eb; 
+    color: #111;
+}
+.wec-mode-btn.active {
+    background: #2563eb;
+    color: #fff;
+    border-color: #2563eb;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
 
-/* Content Scroll */
+/* Nội dung cuộn */
 #wec-transcript-content {
-    flex: 1;
+    height: 100%;
+    padding-top: 56px; /* Bù trừ chiều cao Header */
+    box-sizing: border-box;
     overflow-y: auto;
-    padding: 0;
     background: #fff;
+    scroll-behavior: smooth;
 }
 
-/* Line Items */
+/* Scrollbar đẹp (Chrome/Safari) */
+#wec-transcript-content::-webkit-scrollbar { width: 6px; }
+#wec-transcript-content::-webkit-scrollbar-track { background: #f1f1f1; }
+#wec-transcript-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+#wec-transcript-content::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Dòng thoại */
 .wec-transcript-line {
-    padding: 10px 15px;
-    border-bottom: 1px solid #f1f5f9;
+    padding: 12px 15px;
+    border-bottom: 1px solid #f9fafb;
     cursor: pointer;
     border-left: 4px solid transparent;
-    transition: background 0.1s;
+    transition: background 0.15s;
 }
 .wec-transcript-line:hover { background-color: #f8fafc; }
 
 .wec-transcript-line.active {
     background-color: #eff6ff;
-    border-left-color: #3b82f6;
+    border-left-color: #2563eb;
 }
-.wec-transcript-line.active .wec-sub-en { color: #1d4ed8; font-weight: 600; }
 
-/* Nội dung Text */
-.wec-sub-en { font-size: 16px; color: #334155; line-height: 1.5; margin-bottom: 4px; }
-.wec-sub-vi { font-size: 14px; color: #64748b; font-style: italic; }
+/* Text Styles */
 .wec-time { 
-    font-size: 11px; color: #94a3b8; font-family: monospace; 
-    margin-bottom: 4px; display: block;
+    font-size: 11px; 
+    color: #9ca3af; 
+    font-family: 'Consolas', monospace; 
+    display: block; 
+    margin-bottom: 4px; 
+}
+.wec-sub-en { 
+    font-size: 16px; 
+    color: #1f2937; 
+    line-height: 1.5; 
+    margin-bottom: 4px;
+    font-weight: 400;
+}
+.wec-transcript-line.active .wec-sub-en { 
+    color: #1d4ed8; 
+    font-weight: 500; 
+}
+.wec-sub-vi { 
+    font-size: 14px; 
+    color: #6b7280; 
+    font-style: italic; 
+    line-height: 1.4; 
 }
 
-/* Chế độ hiển thị */
+/* CHẾ ĐỘ HIỂN THỊ (Logic ẩn hiện) */
 #wec-transcript-content.mode-en .wec-sub-vi { display: none; }
 #wec-transcript-content.mode-vi .wec-sub-en { display: none; }
-#wec-transcript-content.mode-hidden .wec-content-wrap { opacity: 0; }
-#wec-transcript-content.mode-hidden .wec-transcript-line:hover .wec-content-wrap { opacity: 0.5; }
+#wec-transcript-content.mode-hidden .wec-content-wrap { opacity: 0; transition: opacity 0.3s; }
+#wec-transcript-content.mode-hidden .wec-transcript-line:hover .wec-content-wrap { opacity: 0.6; }
 
-/* --- 4. POPUP & WORD --- */
-.wec-word { cursor: pointer; border-radius: 3px; padding: 0 1px; }
-.wec-word:hover { background-color: #fde047; color: #000; }
+/* --- 4. TỪ VỰNG & POPUP --- */
+.wec-word { 
+    cursor: pointer; 
+    border-radius: 3px; 
+    padding: 0 1px; 
+}
+.wec-word:hover { 
+    background-color: #fde047; 
+    color: #000; 
+    text-decoration: underline;
+}
 
 .wec-dict-popup {
-    position: fixed; z-index: 99999; background: #fff; width: 300px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid #ccc;
-    font-family: sans-serif;
+    position: fixed; z-index: 99999; 
+    background: #fff; width: 320px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-radius: 8px; border: 1px solid #e5e7eb;
+    font-family: inherit;
+    animation: fadeIn 0.2s ease-out;
 }
-.wec-dict-header { background: #2563eb; color: #fff; padding: 10px 15px; display: flex; justify-content: space-between; border-radius: 7px 7px 0 0; }
-#wec-dict-close { cursor: pointer; font-size: 20px; }
-#wec-dict-body { padding: 15px; color: #333; font-size: 14px; line-height: 1.5; }
+.wec-dict-header { 
+    background: #2563eb; color: #fff; padding: 12px 15px; 
+    display: flex; justify-content: space-between; align-items: center;
+    border-radius: 7px 7px 0 0; 
+}
+#wec-dict-word { font-weight: 700; font-size: 16px; text-transform: capitalize; }
+#wec-dict-close { cursor: pointer; font-size: 20px; opacity: 0.8; }
+#wec-dict-close:hover { opacity: 1; }
+#wec-dict-body { padding: 15px 20px; color: #374151; font-size: 15px; line-height: 1.6; }
 
-/* --- 5. DICTATION MODE (LUYỆN NGHE) --- */
+/* --- 5. LUYỆN NGHE (DICTATION) --- */
 #wec-transcript-content.mode-dictation .wec-transcript-line { display: none; }
 #wec-transcript-content.mode-dictation .wec-transcript-line.active { 
-    display: block; background: #fff; border: 2px solid #2563eb; padding: 30px; font-size: 18px; text-align: center; margin: 20px;
+    display: block; 
+    background: #fff; 
+    border: 2px dashed #3b82f6; 
+    border-radius: 8px;
+    padding: 40px 20px; 
+    text-align: center; 
+    margin: 20px;
 }
 #wec-transcript-content.mode-dictation .wec-sub-vi, 
 #wec-transcript-content.mode-dictation .wec-time { display: none; }
 
 .wec-input-word {
-    border: none; border-bottom: 2px solid #ccc; width: 100px; text-align: center; 
-    font-size: 18px; color: #333; margin: 0 5px; outline: none; background: #f9f9f9; padding: 5px;
-}
-.wec-input-word:focus { border-bottom-color: #2563eb; background: #eef2ff; }
-.wec-input-word.correct { border-bottom-color: #10b981; color: #10b981; font-weight: bold; background: #d1fae5; }
-.wec-input-word.incorrect { border-bottom-color: #ef4444; background: #fee2e2; animation: shake 0.3s; }
-.wec-quiz-feedback { margin-top: 15px; font-weight: bold; height: 20px; color: #10b981; }
-@keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } 100% { transform: translateX(0); } }
-
-/* RESPONSIVE */
-@media (max-width: 950px) {
-    .wec-video-container-full { flex-direction: column; padding: 0; }
-    .wec-col-video { min-width: 100%; padding-right: 0; }
-    .wec-col-transcript { height: 400px; min-width: 100%; }
-}
-/* --- VOCAB QUIZ GAME --- */
-#wec-quiz-container {
-    max-width: 600px;
-    margin: 30px auto;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-    overflow: hidden;
-    font-family: sans-serif;
-    border: 1px solid #e5e7eb;
-}
-
-.wec-quiz-header {
-    background: #4f46e5;
-    color: #fff;
-    padding: 15px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.wec-quiz-header h3 { margin: 0; color: #fff; font-size: 18px; }
-#wec-quiz-score { font-weight: bold; background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 20px; }
-
-#wec-quiz-card { padding: 30px; text-align: center; }
-
-#wec-quiz-question {
-    font-size: 28px;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 30px;
-    min-height: 40px;
-}
-
-#wec-quiz-options {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-}
-
-.wec-quiz-btn {
-    padding: 15px;
-    font-size: 16px;
-    border: 2px solid #e5e7eb;
-    background: #fff;
-    border-radius: 8px;
-    cursor: pointer;
+    border: none; border-bottom: 2px solid #9ca3af; 
+    width: 80px; text-align: center; font-size: 18px; color: #111; 
+    margin: 0 4px; background: transparent; padding: 2px;
     transition: all 0.2s;
-    color: #4b5563;
 }
-.wec-quiz-btn:hover { background: #f9fafb; border-color: #d1d5db; }
+.wec-input-word:focus { border-bottom-color: #2563eb; outline: none; }
+.wec-input-word.correct { border-bottom-color: #10b981; color: #059669; font-weight: bold; }
+.wec-input-word.incorrect { border-bottom-color: #ef4444; color: #dc2626; }
+.wec-quiz-feedback { margin-top: 20px; font-weight: 600; min-height: 24px; color: #059669; }
 
-/* Trạng thái đúng sai */
-.wec-quiz-btn.correct {
-    background: #d1fae5;
-    border-color: #10b981;
-    color: #065f46;
+/* --- 6. QUIZ GAME TRẮC NGHIỆM --- */
+#wec-quiz-container {
+    max-width: 650px; margin: 40px auto; background: #fff;
+    border-radius: 12px; border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow: hidden;
 }
-.wec-quiz-btn.wrong {
-    background: #fee2e2;
-    border-color: #ef4444;
-    color: #991b1b;
-    opacity: 0.6;
+.wec-quiz-header { background: #4f46e5; color: #fff; padding: 20px; display: flex; justify-content: space-between; }
+#wec-quiz-card { padding: 40px; text-align: center; }
+#wec-quiz-question { font-size: 24px; font-weight: 700; color: #111; margin-bottom: 30px; }
+#wec-quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.wec-quiz-btn {
+    padding: 15px; font-size: 16px; background: #fff; border: 2px solid #e5e7eb;
+    border-radius: 8px; cursor: pointer; transition: 0.2s; color: #4b5563;
+}
+.wec-quiz-btn:hover { border-color: #4f46e5; background: #eef2ff; color: #4f46e5; }
+.wec-quiz-btn.correct { background: #d1fae5; border-color: #10b981; color: #065f46; }
+.wec-quiz-btn.wrong { background: #fee2e2; border-color: #ef4444; opacity: 0.5; }
+#wec-quiz-start-btn { grid-column: span 2; background: #4f46e5; color: white; border: none; font-weight: bold; }
+
+/* --- 7. RESPONSIVE --- */
+@media (max-width: 950px) {
+    .wec-video-container-full { padding: 0; width: 100%; margin: 0; }
+    .wec-col-video { padding-right: 0; max-width: 100%; min-width: 100%; }
+    .wec-col-transcript { min-width: 100%; height: 450px; border-radius: 0; border-left: none; border-right: none; }
+    .wec-video-wrapper { border-radius: 0; border: none; }
 }
 
-#wec-quiz-start-btn {
-    grid-column: span 2;
-    background: #4f46e5;
-    color: #fff;
-    border: none;
-    font-weight: bold;
-}
-#wec-quiz-start-btn:hover { background: #4338ca; }
-
-/* Mobile Quiz */
-@media (max-width: 600px) {
-    #wec-quiz-options { grid-template-columns: 1fr; }
-    #wec-quiz-start-btn { grid-column: span 1; }
-}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25%, 75% { transform: translateX(-5px); } 50% { transform: translateX(5px); } }

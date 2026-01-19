@@ -26,7 +26,7 @@ require_once WEC_PLUGIN_DIR . 'includes/shortcode-vocab.php';
 require_once WEC_PLUGIN_DIR . 'includes/shortcode-vip.php'; // <--- MỚI THÊM
 require_once WEC_PLUGIN_DIR . 'includes/membership.php'; // <--- MỚI THÊM
 require_once WEC_PLUGIN_DIR . 'includes/auth.php'; // <--- MỚI THÊM
-// ...
+require_once WEC_PLUGIN_DIR . 'includes/ui-enhancements.php'; // <--- MỚI THÊM
 
 // 3. ALLOW VTT UPLOAD
 function wec_allow_vtt_upload( $mimes ) {
